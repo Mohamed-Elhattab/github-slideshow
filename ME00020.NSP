@@ -1,0 +1,143 @@
+* >Natural Source Header 000000
+* :Mode S
+* :CP IBM01140
+* :LineIncrement 10
+* <Natural Source Header
+* --------------------------------------------------------------------
+* Jul 16/19 ME - extract mine data for long period by submitting the JCL
+*
+* --------------------------------------------------------------------
+DEFINE DATA
+LOCAL USING STDNRC
+LOCAL
+1 JCL VIEW OF SUBMIT
+  2 CARD
+  2 FUNCTION
+  2 JOB-NUMBER
+  2 ERROR-CODE
+  2 ERROR-TEXT
+1 #JCL                       (A80/1:60)
+1 #X                         (P3)
+1 #I                         (P3)
+1 #REPORT-MONTH              (A6)
+1 REDEFINE #REPORT-MONTH
+  2 #YYYY                    (N4)
+  2 #MM                      (N2)
+END-DEFINE
+INPUT #YYYY
+FOR #MM = 1 THRU 12
+  RESET #JCL(*) #RESPONSE #X
+  ADD 1 TO #X
+  #JCL(#X) := '//PTHDW3   JOB PTH101,''MINEPROD'',MSGCLASS=D'
+  ADD 1 TO #X
+  #JCL(#X) := '/*JOBPARM'
+  ADD 1 TO #X
+  #JCL(#X) := '//*UQ ALLOW'
+* Delete existing data files
+  ADD 1 TO #X
+  #JCL(#X) := '//DELFILE  EXEC PGM=IEFBR14'
+  ADD 1 TO #X
+  COMPRESS '//FILE1     DD DSN=CON1ME.MPRP100.D' #REPORT-MONTH
+    ',DISP=(MOD,DELETE),' INTO #JCL(#X) LEAVING NO SPACE
+  ADD 1 TO #X
+  #JCL(#X) := '//    UNIT=SYSDA,SPACE=(1,(1,1))'
+  ADD 1 TO #X
+  COMPRESS '//FILE2     DD DSN=CON1ME.MPRP110.D' #REPORT-MONTH
+    ',DISP=(MOD,DELETE),' INTO #JCL(#X) LEAVING NO SPACE
+  ADD 1 TO #X
+  #JCL(#X) := '//    UNIT=SYSDA,SPACE=(1,(1,1))'
+  ADD 1 TO #X
+  COMPRESS '//FILE3     DD DSN=CON1ME.MPRP120.D' #REPORT-MONTH
+    ',DISP=(MOD,DELETE),' INTO #JCL(#X) LEAVING NO SPACE
+  ADD 1 TO #X
+  #JCL(#X) := '//    UNIT=SYSDA,SPACE=(1,(1,1))'
+* Step 1 MPRP100
+  ADD 1 TO #X
+  #JCL(#X) := '//MPRP100  EXEC NPRDMPM'
+  ADD 1 TO #X
+  COMPRESS '//CMWKF01   DD DSN=CON1ME.MPRP100.D' #REPORT-MONTH
+    ',DISP=(NEW,CATLG,DELETE),' INTO #JCL(#X) LEAVING NO SPACE
+  ADD 1 TO #X
+  #JCL(#X) := '//   UNIT=SYSDA,SPACE=(TRK,(5,2),RLSE),'
+  ADD 1 TO #X
+  #JCL(#X) := '//   DCB=(RECFM=FB,LRECL=80,BLKSIZE=800)'
+  ADD 1 TO #X
+  #JCL(#X) := '//SYSIN  DD  *'
+  ADD 1 TO #X
+  #JCL(#X) := 'LOGON MINEPROD'
+  ADD 1 TO #X
+  #JCL(#X) := 'EXEC MPRP100'
+  ADD 1 TO #X
+  #JCL(#X) := #REPORT-MONTH
+  ADD 1 TO #X
+  #JCL(#X) := '//*'
+* Step 2 MPRP110
+  ADD 1 TO #X
+  #JCL(#X) := '//MPRP110  EXEC NPRDMPM'
+  ADD 1 TO #X
+  COMPRESS '//CMWKF01   DD DSN=CON1ME.MPRP110.D' #REPORT-MONTH
+    ',DISP=(NEW,CATLG,DELETE),' INTO #JCL(#X) LEAVING NO SPACE
+  ADD 1 TO #X
+  #JCL(#X) := '//   UNIT=SYSDA,SPACE=(TRK,(5,2),RLSE),'
+  ADD 1 TO #X
+  #JCL(#X) := '//   DCB=(RECFM=FB,LRECL=80,BLKSIZE=800)'
+  ADD 1 TO #X
+  #JCL(#X) := '//SYSIN  DD  *'
+  ADD 1 TO #X
+  #JCL(#X) := 'LOGON MINEPROD'
+  ADD 1 TO #X
+  #JCL(#X) := 'EXEC MPRP110'
+  ADD 1 TO #X
+  #JCL(#X) := #REPORT-MONTH
+* Step 3 MPRP120
+  ADD 1 TO #X
+  #JCL(#X) := '//MPRP120  EXEC NPRDMPM'
+  ADD 1 TO #X
+  COMPRESS '//CMWKF01   DD DSN=CON1ME.MPRP120.D' #REPORT-MONTH
+    ',DISP=(NEW,CATLG,DELETE),' INTO #JCL(#X) LEAVING NO SPACE
+  ADD 1 TO #X
+  #JCL(#X) := '//   UNIT=SYSDA,SPACE=(TRK,(5,2),RLSE),'
+  ADD 1 TO #X
+  #JCL(#X) := '//   DCB=(RECFM=FB,LRECL=80,BLKSIZE=800)'
+  ADD 1 TO #X
+  #JCL(#X) := '//SYSIN  DD  *'
+  ADD 1 TO #X
+  #JCL(#X) := 'LOGON MINEPROD'
+  ADD 1 TO #X
+  #JCL(#X) := 'EXEC MPRP120'
+  ADD 1 TO #X
+  #JCL(#X) := #REPORT-MONTH
+  ADD 1 TO #X
+  #JCL(#X) := '//*'
+  ADD 1 TO #X
+  #JCL(#X) := 'FIN'
+  ADD 1 TO #X
+  #JCL(#X) := '//'
+  IF TRUE             /* submit TRUE, debug FALSE
+    RESET JCL
+    FOR #I = 1 TO #X
+      JCL.CARD := #JCL(#I)
+      IF JCL.CARD = '//'
+        JCL.FUNCTION := 'CLOSE'
+      END-IF
+      PROCESS JCL
+        USING CARD = JCL.CARD, FUNCTION = JCL.FUNCTION
+      IF JCL.ERROR-CODE NE 0
+        #RESPONSE-CODE := 4
+        COMPRESS ERROR-CODE ERROR-TEXT INTO #MESSAGE
+        WRITE #MESSAGE
+        ESCAPE ROUTINE
+      END-IF
+    END-FOR
+    IF JCL.JOB-NUMBER NE 0
+      WRITE #REPORT-MONTH 'PTHDW3(' JCL.JOB-NUMBER ') Submitted'
+    END-IF
+  ELSE
+    WRITE #REPORT-MONTH
+    FOR #I = 1 TO #X
+      WRITE #JCL(#I) (AL=79)
+    END-FOR
+  END-IF
+END-FOR
+*********************************************************************
+END
